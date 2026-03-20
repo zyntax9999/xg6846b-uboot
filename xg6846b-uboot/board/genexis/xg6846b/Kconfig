@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: GPL-2.0+
+
+if TARGET_XG6846B
+
+config SYS_BOARD
+	default "xg6846b"
+
+config SYS_VENDOR
+	default "genexis"
+
+config SYS_SOC
+	default "bcm6846"
+
+config SYS_CONFIG_NAME
+	default "xg6846b"
+
+config BCM6846_ETH
+	bool "BCM6846 XRDP Ethernet driver"
+	depends on DM_ETH
+	select BCM6846_MDIO
+	default y
+	help
+	  Ethernet driver for the Broadcom BCM6846 (BCM68460) SoC.
+	  Uses the XRDP Runner data-path with SBPM packet buffers for
+	  TX and RX.  The UniMAC EMAC0 is connected via RGMII to the
+	  Marvell 88E6320 switch CPU port.
+
+	  Required for TFTP firmware updates and network boot on the
+	  Genexis XG6846B.
+
+config BCM6846_MDIO
+	bool "BCM6846 MDIO bus driver"
+	depends on DM_MDIO
+	default y
+	help
+	  MDIO bus driver for the BCM6846 hardware MDIO controller.
+	  Required for 88E6320 switch initialisation and internal PHY
+	  management.
+
+endif

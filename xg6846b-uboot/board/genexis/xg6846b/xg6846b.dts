@@ -1,0 +1,158 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * U-Boot Device Tree for Genexis XG6846B
+ * BCM68460 (BCM6846) SoC
+ *
+ * This is a stripped-down DTS for U-Boot.  It only describes devices
+ * needed during boot: UART, MDIO, Ethernet, NAND, I2C.
+ * The full Linux DTS is in dts/genexis-xg6846b.dts.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+	compatible = "genexis,xg6846b", "brcm,bcm6846";
+	model = "Genexis XG6846B (U-Boot)";
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen {
+		stdout-path = &uart0;
+		bootargs = "console=ttyS0,115200";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x10000000>;
+	};
+
+	aliases {
+		serial0   = &uart0;
+		ethernet0 = &eth0;
+		mdio0     = &mdio0;
+	};
+
+	/* -------------------------------------------------------
+	 * UART0  (BCM6345 compatible)
+	 * PERF_PHYS_BASE + 0x640 = 0xff800640
+	 * ------------------------------------------------------- */
+	uart0: serial@ff800640 {
+		compatible = "brcm,bcm6345-uart";
+		reg = <0xff800640 0x18>;
+		clock-frequency = <50000000>;
+		current-speed = <115200>;
+		status = "okay";
+	};
+
+	/* -------------------------------------------------------
+	 * GPIO controller
+	 * ------------------------------------------------------- */
+	gpio: gpio@ff800500 {
+		compatible = "brcm,bcm6846-gpio";
+		reg = <0xff800500 0x80>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		status = "okay";
+	};
+
+	/* -------------------------------------------------------
+	 * MDIO bus
+	 * PERF_PHYS_BASE + 0x2060 = 0xff802060
+	 * ------------------------------------------------------- */
+	mdio0: mdio@ff802060 {
+		compatible = "brcm,bcm6846-mdio";
+		reg = <0xff802060 0x8>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clock-divider = <12>;
+		status = "okay";
+
+		/* 88E6320 switch — management MDIO base address 0x10 */
+		switch0: switch@10 {
+			compatible = "marvell,mv88e6320";
+			reg = <0x10>;
+			reset-gpios = <&gpio 14 GPIO_ACTIVE_LOW>;
+			status = "okay";
+		};
+	};
+
+	/* -------------------------------------------------------
+	 * BCM6846 XRDP Ethernet (SBPM path)
+	 * This node provides the U-Boot DM eth device.
+	 * Actual register access uses hardcoded physical addresses
+	 * (UNIMAC=0x82da0000, RGMII=0x82d97300, SBPM=0x82d98000).
+	 * ------------------------------------------------------- */
+	eth0: ethernet@82da0000 {
+		compatible = "brcm,bcm6846-eth";
+		reg = <0x82da0000 0x1000>;
+		active-port = <0>;      /* default: send/recv on switch P0 */
+		status = "okay";
+	};
+
+	/* -------------------------------------------------------
+	 * NAND Flash
+	 * ------------------------------------------------------- */
+	nand: nand-controller@ff801800 {
+		compatible = "brcm,nand-bcm6846",
+			     "brcm,brcmnand-v7.1",
+			     "brcm,brcmnand";
+		reg = <0xff801800 0x600>,
+		      <0xff801c00 0x40>,
+		      <0xff802000 0x10>;
+		reg-names = "nand", "nand-cache", "nand-int-base";
+		status = "okay";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		nandcs@0 {
+			compatible = "brcm,nandcs";
+			reg = <0>;
+			nand-ecc-mode = "hw";
+			nand-ecc-strength = <8>;
+			nand-ecc-step-size = <512>;
+
+			partitions {
+				compatible = "fixed-partitions";
+				#address-cells = <1>;
+				#size-cells = <1>;
+
+				cfe: partition@0 {
+					label = "cfe";
+					reg = <0x00000000 0x00100000>;
+					read-only;
+				};
+
+				linux: partition@100000 {
+					label = "linux";
+					reg = <0x00100000 0x01e00000>;
+				};
+
+				nvram: partition@1f00000 {
+					label = "nvram";
+					reg = <0x01f00000 0x00100000>;
+				};
+			};
+		};
+	};
+
+	/* -------------------------------------------------------
+	 * I2C (for SFP EEPROM)
+	 * ------------------------------------------------------- */
+	i2c0: i2c@ff802100 {
+		compatible = "brcm,bcm6846-i2c";
+		reg = <0xff802100 0x60>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clock-frequency = <100000>;
+		status = "okay";
+
+		/* SFP EEPROM at standard I2C address 0x50 */
+		sfp_eeprom: eeprom@50 {
+			compatible = "atmel,24c02";
+			reg = <0x50>;
+		};
+	};
+};
