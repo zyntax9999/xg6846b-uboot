@@ -1,4 +1,4 @@
-# Genexis XG6846B — U-Boot Port
+# Genexis XG6846B — bcm6846 - U-Boot Port
 ## For OpenWrt Development
 
 ---
